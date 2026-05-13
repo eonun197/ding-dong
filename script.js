@@ -324,11 +324,31 @@ function togglePlay() {
   updatePlayBtn();
 }
 
-// --- MediaRecorder: 왜곡된 canvas를 webm으로 녹화 ---
+// --- MediaRecorder: 왜곡된 canvas를 mp4/webm으로 녹화 ---
 
 let mediaRecorder = null;
 let recordedChunks = [];
 let recording = false;
+
+/**
+ * 브라우저가 지원하는 컨테이너/코덱 우선순위:
+ *   1) iOS Safari / Chrome 일부: video/mp4 (H.264 + AAC)
+ *   2) Chromium 계열: video/webm (VP9/VP8 + Opus)
+ */
+function pickRecorderMime() {
+  const candidates = [
+    'video/mp4;codecs=avc1.42E01E,mp4a.40.2',
+    'video/mp4;codecs=h264,aac',
+    'video/mp4',
+    'video/webm;codecs=vp9,opus',
+    'video/webm;codecs=vp8,opus',
+    'video/webm',
+  ];
+  for (const m of candidates) {
+    if (typeof MediaRecorder !== 'undefined' && MediaRecorder.isTypeSupported(m)) return m;
+  }
+  return '';
+}
 
 function startRecording() {
   recordedChunks = [];
@@ -343,19 +363,29 @@ function startRecording() {
     }
   }
 
-  const mime = MediaRecorder.isTypeSupported('video/webm;codecs=vp9,opus')
-    ? 'video/webm;codecs=vp9,opus'
-    : 'video/webm';
-  mediaRecorder = new MediaRecorder(stream, { mimeType: mime });
+  const mime = pickRecorderMime();
+  const ext = mime.includes('mp4') ? 'mp4' : 'webm';
+  const blobType = mime.split(';')[0] || (ext === 'mp4' ? 'video/mp4' : 'video/webm');
+
+  try {
+    mediaRecorder = mime
+      ? new MediaRecorder(stream, { mimeType: mime })
+      : new MediaRecorder(stream);
+  } catch (err) {
+    console.warn('MediaRecorder init failed:', err);
+    alert('이 브라우저에선 영상 녹화가 지원되지 않아요');
+    return;
+  }
+
   mediaRecorder.ondataavailable = (e) => {
     if (e.data.size > 0) recordedChunks.push(e.data);
   };
   mediaRecorder.onstop = () => {
-    const blob = new Blob(recordedChunks, { type: 'video/webm' });
+    const blob = new Blob(recordedChunks, { type: blobType });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = `fisheye-${Date.now()}.webm`;
+    a.download = `fisheye-${Date.now()}.${ext}`;
     a.click();
     URL.revokeObjectURL(url);
   };
