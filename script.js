@@ -212,8 +212,16 @@ function stopVideoLoop() {
 
 function loadFile(file) {
   if (!file) return;
-  if (file.type.startsWith('image/'))      loadImage(file);
-  else if (file.type.startsWith('video/')) loadVideo(file);
+  const type = (file.type || '').toLowerCase();
+  const name = (file.name || '').toLowerCase();
+  // iOS에서 HEIC/특수 포맷은 MIME이 비거나 generic이라 확장자 fallback 필요
+  const isVideoFile = type.startsWith('video/') ||
+                      /\.(mp4|m4v|mov|webm|mkv|3gp|avi)$/i.test(name);
+  const isImageFile = type.startsWith('image/') ||
+                      /\.(jpe?g|png|gif|webp|heic|heif|bmp|avif)$/i.test(name);
+  if (isVideoFile)      loadVideo(file);
+  else if (isImageFile) loadImage(file);
+  else console.warn('unsupported file:', file.type, file.name);
 }
 
 function clearVideo() {
@@ -437,6 +445,11 @@ resetBtn.addEventListener('click', () => {
 
 let dragging = false;
 let lastMouse = null;
+
+// 빈 캔버스를 탭하면 파일 선택 열림 (모바일 UX)
+canvas.addEventListener('click', () => {
+  if (!sourceMedia) fileInput.click();
+});
 
 canvas.addEventListener('mousedown', (e) => {
   if (!sourceMedia) return;

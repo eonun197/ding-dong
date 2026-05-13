@@ -11,12 +11,11 @@
   <main class="stage">
     <header class="header">
       <h1 class="title">띵 동 ~</h1>
-      <p class="subtitle">어안렌즈 카메라</p>
     </header>
 
     <div class="frame">
       <canvas id="canvas" width="700" height="700"></canvas>
-      <div id="hint" class="hint">여기에 놓아주세요</div>
+      <div id="hint" class="hint">탭해서 시작</div>
     </div>
 
     <div class="controls">
@@ -34,8 +33,10 @@
       <div class="hint-row">손가락으로 끌어서 위치 조정 · 슬라이더로 확대</div>
 
       <div class="buttons">
-        <label class="btn" for="file">업로드</label>
-        <input type="file" id="file" accept="image/*,video/*" hidden />
+        <label class="btn upload-btn">
+          업로드
+          <input type="file" id="file" accept="image/*,video/*" />
+        </label>
         <button id="play" class="btn hide">재생</button>
         <button id="reset" class="btn" disabled>초기화</button>
         <button id="record" class="btn hide">녹화</button>

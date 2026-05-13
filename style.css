@@ -100,7 +100,7 @@ body {
 }
 
 #canvas.dragging { cursor: grabbing; }
-#canvas.empty    { cursor: default; }
+#canvas.empty    { cursor: pointer; }
 
 .hint {
   position: absolute;
@@ -235,19 +235,30 @@ input[type="range"]::-moz-range-thumb {
 }
 
 /* primary: upload + play */
-label.btn[for="file"],
+.upload-btn,
 #play {
   background: var(--accent);
   border-color: var(--accent);
   color: #FFFFFF;
 }
 
-label.btn[for="file"]:hover,
+.upload-btn:hover,
 #play:hover:not(:disabled) {
   background: var(--accent-dark);
   border-color: var(--accent-dark);
   color: #FFFFFF;
   box-shadow: var(--shadow-button);
+}
+
+/* file input은 시각적으로만 숨김 — 모바일 호환성 위해 display:none 안 씀 */
+.upload-btn { position: relative; overflow: hidden; }
+.upload-btn input[type="file"] {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  pointer-events: none;
+  clip: rect(0 0 0 0);
 }
 
 .btn:disabled {
