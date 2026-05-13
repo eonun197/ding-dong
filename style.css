@@ -23,7 +23,12 @@
   --shadow-button: 0 6px 16px rgba(168, 200, 232, 0.32);
 }
 
-* { box-sizing: border-box; margin: 0; padding: 0; }
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;   /* 모바일 회색 탭 하이라이트 제거 */
+}
 
 html, body {
   width: 100%;
@@ -35,6 +40,9 @@ html, body {
   font-weight: 600;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  -webkit-user-select: none;
+  user-select: none;
+  overscroll-behavior: none;                  /* iOS 고무줄 스크롤 방지 */
 }
 
 body {
@@ -97,6 +105,7 @@ body {
   cursor: grab;
   user-select: none;
   -webkit-user-drag: none;
+  touch-action: none;                         /* 터치 드래그가 페이지 스크롤로 새지 않게 */
 }
 
 #canvas.dragging { cursor: grabbing; }
@@ -311,14 +320,28 @@ input[type="range"]::-moz-range-thumb {
 /* --- Responsive --- */
 
 @media (max-width: 720px) {
-  .stage { padding: 28px 18px 44px; gap: 24px; }
+  .stage { padding: 28px 18px 56px; gap: 28px; }
   .title { font-size: 34px; }
-  .subtitle { font-size: 10px; letter-spacing: 0.3em; }
   .frame { border-radius: 24px; }
   .slider-row { gap: 14px; }
-  .label { min-width: 48px; font-size: 13px; }
-  .value { min-width: 50px; font-size: 11px; }
-  .btn { padding: 12px 20px; font-size: 12px; }
-  .hint { font-size: 13px; }
+  .label { min-width: 52px; font-size: 14px; }
+  .value { min-width: 56px; font-size: 13px; }
+
+  /* 모바일 터치 타깃: Apple HIG 권장 44px 이상으로 */
+  .btn {
+    padding: 18px 26px;
+    font-size: 15px;
+    min-height: 54px;
+    border-radius: 999px;
+  }
+  .buttons { gap: 12px; width: 100%; }
+
+  /* 슬라이더 thumb도 손가락 친화적으로 */
+  input[type="range"] { height: 10px; }
+  input[type="range"]::-webkit-slider-thumb { width: 30px; height: 30px; }
+  input[type="range"]::-moz-range-thumb     { width: 30px; height: 30px; }
+
+  .hint { font-size: 14px; }
+  .hint-row { font-size: 12px; }
   .drop-overlay span { font-size: 18px; }
 }

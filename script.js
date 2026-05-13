@@ -441,47 +441,52 @@ resetBtn.addEventListener('click', () => {
   scheduleRender();
 });
 
-// --- 델타 기반 드래그 (재생 중에도 동시 작동) ---
+// --- Pointer 이벤트로 데스크톱 마우스 + 모바일 터치 통합 처리 ---
 
 let dragging = false;
 let lastMouse = null;
+let activePointerId = null;
+let pointerDownPos = null;       // 클릭 vs 드래그 판별용
 
 // 빈 캔버스를 탭하면 파일 선택 열림 (모바일 UX)
 canvas.addEventListener('click', () => {
   if (!sourceMedia) fileInput.click();
 });
 
-canvas.addEventListener('mousedown', (e) => {
+canvas.addEventListener('pointerdown', (e) => {
   if (!sourceMedia) return;
   e.preventDefault();
   dragging = true;
+  activePointerId = e.pointerId;
   lastMouse = getCanvasCoords(e.clientX, e.clientY);
+  pointerDownPos = { x: e.clientX, y: e.clientY };
   canvas.classList.add('dragging');
+  // 포인터 캡처: 손가락이 캔버스 밖으로 나가도 이벤트 계속 받음
+  try { canvas.setPointerCapture(e.pointerId); } catch (err) {}
 });
 
-window.addEventListener('mousemove', (e) => {
-  if (!dragging) return;
+canvas.addEventListener('pointermove', (e) => {
+  if (!dragging || e.pointerId !== activePointerId) return;
+  e.preventDefault();
   const cur = getCanvasCoords(e.clientX, e.clientY);
   panX += cur.x - lastMouse.x;
   panY += cur.y - lastMouse.y;
   lastMouse = cur;
   sceneDirty = true;
-  // 비디오 루프가 안 돌고 있을 때만 직접 스케줄 (재생 중이면 다음 frame에 자연 반영)
   if (!videoPlaying) scheduleRender();
 });
 
-window.addEventListener('mouseup', () => {
-  if (!dragging) return;
+function endDrag(e) {
+  if (!dragging || (e && e.pointerId !== activePointerId)) return;
   dragging = false;
+  activePointerId = null;
   canvas.classList.remove('dragging');
-});
+  try { if (e) canvas.releasePointerCapture(e.pointerId); } catch (err) {}
+}
 
-window.addEventListener('blur', () => {
-  if (dragging) {
-    dragging = false;
-    canvas.classList.remove('dragging');
-  }
-});
+canvas.addEventListener('pointerup', endDrag);
+canvas.addEventListener('pointercancel', endDrag);
+window.addEventListener('blur', () => endDrag());
 
 canvas.addEventListener('wheel', (e) => {
   if (!sourceMedia) return;
