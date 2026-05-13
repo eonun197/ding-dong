@@ -455,6 +455,8 @@ canvas.addEventListener('click', () => {
 
 canvas.addEventListener('pointerdown', (e) => {
   if (!sourceMedia) return;
+  if (dragging) return;          // 이미 다른 손가락 추적 중이면 무시
+  if (!e.isPrimary) return;      // 멀티터치 보조 손가락은 무시
   e.preventDefault();
   dragging = true;
   activePointerId = e.pointerId;
