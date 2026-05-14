@@ -257,7 +257,6 @@ function loadImage(file) {
 }
 
 function loadVideo(file) {
-  // Hidden <video> 엘리먼트 (DOM에 attach해야 일부 브라우저에서 오디오 안전)
   if (!videoEl) {
     videoEl = document.createElement('video');
     videoEl.loop = true;
@@ -265,13 +264,20 @@ function loadVideo(file) {
     videoEl.crossOrigin = 'anonymous';
     videoEl.style.display = 'none';
     document.body.appendChild(videoEl);
-  } else {
-    videoEl.pause();
   }
 
-  videoEl.src = URL.createObjectURL(file);
+  // 이전 상태 완전 리셋 — 두 번째 업로드/같은 파일 재선택 시 안 먹히는 문제 방지
+  videoEl.pause();
+  videoEl.onloadeddata = null;
+  videoEl.onerror = null;
+  const oldSrc = videoEl.src;
+  videoEl.removeAttribute('src');
+  try { videoEl.load(); } catch (e) {}
+  if (oldSrc && oldSrc.startsWith('blob:')) URL.revokeObjectURL(oldSrc);
 
-  videoEl.addEventListener('loadeddata', () => {
+  videoEl.onloadeddata = () => {
+    videoEl.onloadeddata = null;
+    videoEl.onerror = null;
     sourceMedia = videoEl;
     isVideo = true;
     const sx = SIZE / videoEl.videoWidth;
@@ -280,7 +286,7 @@ function loadVideo(file) {
     playBtn.classList.remove('hide');
     recordBtn.classList.remove('hide');
     onMediaReady();
-    // 자동재생 시도. 사운드 있으면 차단될 수 있음 → 그 경우 사용자가 play 버튼 누름
+    // 자동재생 시도. 사운드 차단되면 사용자가 play 버튼 누름
     videoEl.play().then(() => {
       videoPlaying = true;
       startVideoLoop();
@@ -289,7 +295,17 @@ function loadVideo(file) {
       videoPlaying = false;
       updatePlayBtn();
     });
-  }, { once: true });
+  };
+
+  videoEl.onerror = () => {
+    videoEl.onloadeddata = null;
+    videoEl.onerror = null;
+    console.warn('video load error:', videoEl.error);
+    alert('영상을 불러올 수 없어요. 다시 시도하거나 다른 파일을 골라주세요.');
+  };
+
+  videoEl.src = URL.createObjectURL(file);
+  try { videoEl.load(); } catch (e) {}
 }
 
 function onMediaReady() {
@@ -382,12 +398,7 @@ function startRecording() {
   };
   mediaRecorder.onstop = () => {
     const blob = new Blob(recordedChunks, { type: blobType });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `fisheye-${Date.now()}.${ext}`;
-    a.click();
-    URL.revokeObjectURL(url);
+    saveOrShare(blob, `fisheye-${Date.now()}.${ext}`);
   };
   mediaRecorder.start();
   recording = true;
@@ -434,6 +445,34 @@ function applyZoom(newZoom, anchorX, anchorY) {
   sceneDirty = true;
 }
 
+/**
+ * Blob을 저장. 모바일에선 navigator.share()로 시스템 공유 시트 → 사진앱 저장 가능.
+ * 데스크톱이나 미지원 환경에선 일반 다운로드.
+ */
+async function saveOrShare(blob, filename) {
+  const type = blob.type || 'application/octet-stream';
+  const file = new File([blob], filename, { type });
+
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({ files: [file] });
+      return;
+    } catch (err) {
+      if (err && err.name === 'AbortError') return;  // 사용자가 취소 → 다운로드 폴백 안 함
+      console.warn('share failed, fallback to download:', err);
+    }
+  }
+
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 // --- 컨트롤 이벤트 ---
 
 strengthInput.addEventListener('input', () => {
@@ -454,10 +493,10 @@ playBtn.addEventListener('click', togglePlay);
 recordBtn.addEventListener('click', toggleRecording);
 
 downloadBtn.addEventListener('click', () => {
-  const link = document.createElement('a');
-  link.download = `fisheye-${Date.now()}.png`;
-  link.href = canvas.toDataURL('image/png');
-  link.click();
+  canvas.toBlob((blob) => {
+    if (!blob) return;
+    saveOrShare(blob, `fisheye-${Date.now()}.png`);
+  }, 'image/png');
 });
 
 resetBtn.addEventListener('click', () => {
