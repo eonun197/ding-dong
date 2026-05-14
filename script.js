@@ -475,8 +475,8 @@ async function saveOrShare(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-const APP_URL = 'https://eonun197.github.io/ding-dong/';
-const SHARE_TEXT = '띵 동 ~ 어안렌즈로 봤어요 👁';
+const APP_URL = 'https://eonun197.github.io/fisheye/';
+const SHARE_TEXT = '어안렌즈로 봤어요 👁';
 
 /**
  * 현재 화면을 PNG 스냅샷으로 만들어 공유.
@@ -495,7 +495,7 @@ function shareCurrentImage() {
     // 1) 이미지 파일째 공유
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
-        await navigator.share({ files: [file], title: '띵 동 ~', text: SHARE_TEXT });
+        await navigator.share({ files: [file], title: '어안렌즈', text: SHARE_TEXT });
         return;
       } catch (err) {
         if (err && err.name === 'AbortError') return;   // 사용자가 취소
@@ -506,7 +506,7 @@ function shareCurrentImage() {
     // 2) 링크 + 문구만 공유
     if (navigator.share) {
       try {
-        await navigator.share({ title: '띵 동 ~', text: SHARE_TEXT, url: APP_URL });
+        await navigator.share({ title: '어안렌즈', text: SHARE_TEXT, url: APP_URL });
         return;
       } catch (err) {
         if (err && err.name === 'AbortError') return;
