@@ -9,6 +9,7 @@ const playBtn = document.getElementById('play');
 const resetBtn = document.getElementById('reset');
 const recordBtn = document.getElementById('record');
 const downloadBtn = document.getElementById('download');
+const shareBtn = document.getElementById('share');
 const hint = document.getElementById('hint');
 const dropOverlay = document.getElementById('dropOverlay');
 
@@ -318,6 +319,7 @@ function onMediaReady() {
   hint.classList.add('hide');
   canvas.classList.remove('empty');
   downloadBtn.disabled = false;
+  shareBtn.disabled = false;
   resetBtn.disabled = false;
   scheduleRender();
 }
@@ -473,6 +475,63 @@ async function saveOrShare(blob, filename) {
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+const APP_URL = 'https://eonun197.github.io/ding-dong/';
+const SHARE_TEXT = '띵 동 ~ 어안렌즈로 봤어요 👁';
+
+/**
+ * 현재 화면을 PNG 스냅샷으로 만들어 공유.
+ * 영상이 올라와 있어도 "지금 보이는 한 프레임"을 공유한다 (영상째 공유는 '녹화' 사용).
+ * 3단계 폴백:
+ *   1) 이미지 파일째 공유 — 모바일 공유 시트(카톡/인스타/SNS)
+ *   2) 파일 공유 미지원 — 링크+문구만 공유 (그래도 카톡 전송 가능)
+ *   3) Web Share 자체 미지원(일부 데스크톱) — 링크 복사 + 이미지 저장
+ */
+function shareCurrentImage() {
+  if (!sourceMedia) return;
+  canvas.toBlob(async (blob) => {
+    if (!blob) return;
+    const file = new File([blob], `fisheye-${Date.now()}.png`, { type: 'image/png' });
+
+    // 1) 이미지 파일째 공유
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({ files: [file], title: '띵 동 ~', text: SHARE_TEXT });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;   // 사용자가 취소
+        console.warn('file share failed, trying link share:', err);
+      }
+    }
+
+    // 2) 링크 + 문구만 공유
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: '띵 동 ~', text: SHARE_TEXT, url: APP_URL });
+        return;
+      } catch (err) {
+        if (err && err.name === 'AbortError') return;
+        console.warn('link share failed, falling back to copy:', err);
+      }
+    }
+
+    // 3) Web Share 미지원 — 링크 복사 + 이미지 저장
+    try {
+      await navigator.clipboard.writeText(APP_URL);
+      alert('이 브라우저는 바로 공유가 안 돼요.\n링크를 복사했어요 — 붙여넣어 공유하세요.\n이미지도 저장해둘게요.');
+    } catch (e) {
+      alert('이 브라우저는 바로 공유가 안 돼요. 이미지를 저장해둘게요.');
+    }
+    const dlUrl = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = dlUrl;
+    a.download = file.name;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    setTimeout(() => URL.revokeObjectURL(dlUrl), 1000);
+  }, 'image/png');
+}
+
 // --- 컨트롤 이벤트 ---
 
 strengthInput.addEventListener('input', () => {
@@ -498,6 +557,8 @@ downloadBtn.addEventListener('click', () => {
     saveOrShare(blob, `fisheye-${Date.now()}.png`);
   }, 'image/png');
 });
+
+shareBtn.addEventListener('click', shareCurrentImage);
 
 resetBtn.addEventListener('click', () => {
   if (!sourceMedia) return;

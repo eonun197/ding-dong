@@ -263,6 +263,20 @@ input[type="range"]::-moz-range-thumb {
   box-shadow: var(--shadow-button);
 }
 
+/* social: 공유 — 옐로우 포인트로 눈에 띄게 */
+#share {
+  background: var(--yellow);
+  border-color: var(--yellow);
+  color: var(--yellow-dark);
+}
+
+#share:hover:not(:disabled) {
+  background: var(--yellow-dark);
+  border-color: var(--yellow-dark);
+  color: #FFFFFF;
+  box-shadow: 0 8px 22px var(--yellow-glow);
+}
+
 /* file input은 시각적으로만 숨김 — 모바일 호환성 위해 display:none 안 씀 */
 .upload-btn { position: relative; overflow: hidden; }
 .upload-btn input[type="file"] {
